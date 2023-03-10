@@ -1,0 +1,520 @@
+#!/bin/bash
+#source: LINUX
+#jkhong Khong Julia 501031572 Section 09
+#r34pau Paul  Romeo 500835883 Section 06
+
+#variable to hold marked symbol
+marked="m"
+
+#Array to hold numeric values being called out
+declare -a call_num
+
+#Array to hold called bingo values
+declare -a output
+
+
+#Take in file as a parameter:
+filename=$1
+
+#========================================================================
+#checks if a file that is given exists!
+if ! [ -f "$filename" ];  
+then
+   echo "This file does not exist" >&2
+   exit
+fi
+
+#========================================================================
+
+#checks if the input file does not have exactly 6 lines
+lines=`wc -l <$filename`
+if ! [ $lines = 6 ]
+then
+ 	echo "input file must have 6 lines"
+	exit
+fi
+
+#========================================================================
+
+
+#Initialize the seed number using head
+seed=$(head -n 1 $filename)
+
+
+#to see if the seed is a valid seed with no non-digit input
+num='^[0-9]+$'
+if ! [[ $seed =~ $num ]] ; then
+   echo "seed line format error"
+   exit
+fi
+
+#========================================================================
+
+#checks if the input file has 26 words
+
+wordcount=`wc -w <$filename`
+if ! [ $wordcount = 26 ]
+then
+        echo "card format error"
+        exit
+fi
+#========================================================================
+
+
+
+#Initialize seed value into RANDOM so each RANDOM generated value has it's own corresponding seed
+#so more than 1 player can play together
+RANDOM=$seed
+
+#read in all the values in the input file into an array, therefore each component of the array would look
+#like this arr[0]=1 2 3 4 5, arr[1]=5 6 7 8 9, etc
+arr=()
+while IFS= read -r line; do
+   arr+=("$line")
+done <$filename
+
+#Transfer the array components to an individual string to be split individually
+#For example: string1 = "11 27 39 59 62", string2 = "08 29 42 49 70"
+string1=${arr[1]}
+string2=${arr[2]}
+string3=${arr[3]}
+string4=${arr[4]}
+string5=${arr[5]}
+
+#split every string inside the entire string that is separated by spaces into individuals strings and store into array, 
+#string1 = "11 27 39 59 62" --> array1  = (11 27 39 59 62) and so forth
+array1=(`echo $string1 | sed 's/,/\n/g'`)
+array2=(`echo $string2 | sed 's/,/\n/g'`)
+array3=(`echo $string3 | sed 's/,/\n/g'`)
+array4=(`echo $string4 | sed 's/,/\n/g'`)
+array5=(`echo $string5 | sed 's/,/\n/g'`)
+
+
+#combine the 5 arrays into one final array
+
+for i in {0..4}
+do
+   final[i]=${array1[i]}
+done
+
+check=0
+for i in {5..9}
+do
+
+    final[i]=${array2[$check]}
+    check=`expr $check + 1`
+done
+
+check=0
+for i in {10..14}
+do
+    final[i]=${array3[$check]}
+    check=`expr $check + 1`
+done
+
+check=0
+for i in {15..19}
+do
+    final[i]=${array4[$check]}
+    check=`expr $check + 1`
+done
+
+check=0
+for i in {20..24}
+do
+    final[i]=${array5[$check]}
+    check=`expr $check + 1`
+done
+
+final[12]+=${marked}
+
+
+
+#=====================================================================
+#searches for duplicates
+
+
+counter=0
+for i in {0..24}
+do
+    for j in {0..24}
+    do
+        if [[ "${final[i]}" == "${final[j]}" ]]
+        then
+            let counter++
+        fi
+    done
+    if [ $counter -gt 1 ]
+    then
+        echo "card format error"
+        counter=0
+	exit
+    fi
+    counter=0
+
+done
+
+#=====================================================================
+#this checks that the numbers are in their right ranges for column L
+
+ for i in 0 5 10 15 20
+                do
+
+			if [[ ${final[i]} < 0 || ${final[i]} > 15 ]]
+			then
+				echo "card format error"
+				exit
+			fi
+                done
+
+#=====================================================================
+
+for i in 1 6 11 16 21
+                do
+
+
+                        if [[ ${final[i]} < 16 || ${final[i]} > 30 ]]
+                        then
+                                echo "card format error"
+                                exit
+                        fi
+                done
+#=====================================================================
+for i in 2 7 17 22
+		do
+
+
+			if  [[ ${final[i]} < 31 || ${final[i]} > 45 ]]
+                        then
+                                echo "card format error"
+                                exit
+                        fi
+                done
+#=====================================================================
+for i in 3 8 13 18 23
+                do
+
+
+                        if  [[ ${final[i]} < 46 || ${final[i]} > 60 ]]
+                        then
+                                echo "card format error"
+                                exit
+                        fi
+                done
+#=====================================================================
+for i in 4 9 14 19 24
+                do
+
+                        if  [[ ${final[i]} < 61 || ${final[i]} > 75 ]]
+                        then
+                                echo "card format error"
+                                exit
+                        fi
+                done
+#=====================================================================
+
+
+
+count=0
+function RandomGen(){
+
+
+
+        linux="LINUX"
+
+        RandomOutput=""
+        RandomLetter="${linux:$(( RANDOM % ${#linux} )):1}"  #generates a random letter
+
+        case ${RandomLetter} in
+
+        "L")
+                RandomNumber="$[ ( $RANDOM % 15 )  + 1 ]"
+                if ((${RandomNumber} < 10))
+                 then
+                RandomNumber="0$RandomNumber"
+                fi
+
+                ;;
+        "I")
+                RandomNumber="$[ ( $RANDOM % 15 )  + 16 ]"
+                ;;
+        "N")
+                RandomNumber="$[ ( $RANDOM % 15 )  + 31 ]"
+                ;;
+        "U")
+                RandomNumber="$[ ( $RANDOM % 15 )  + 46 ]"
+                ;;
+        "X")
+                RandomNumber="$[ ( $RANDOM % 15 )  + 61 ]"
+                ;;
+        esac
+
+        RandomOutput+="${RandomLetter}"
+        RandomOutput+="${RandomNumber}"
+
+
+        if [[ "${output[*]}" =~ "${RandomOutput}" ]];      #if the random letter and number generated already exists in the array, then regenerate another letter and number
+                 then
+                RandomGen
+        else
+                output[${count}]+="${RandomOutput}"
+                count=`expr $count+1`
+                call_num[${count}]+="${RandomNumber}"
+        fi
+        }
+
+
+#Basically goes through the input bingo card array values and checks with the updated bingo called values
+#to see if there is a match, if there is, then it is marked with m
+function mark_it()
+        {
+                for i in {0..24}
+                do
+
+                        if [ ${final[i]} == ${call_num[-1]} ]
+                        then
+                                final[i]+=${marked}
+                        else
+                                continue
+                        fi
+                done
+        }
+
+
+#Identifies Bingo and ends the game!
+function Bingo()
+	{
+		counter=0
+		#Identifying Row Bingos!
+		for i in {0..4}
+		do
+			if [[ ${final[i]} == *"m"* ]]
+			then
+				let counter++
+			fi
+			if [ $counter -eq 5 ]
+			then
+				echo ""
+				echo "WINNER"
+				exit
+			fi
+		done
+
+		counter=0
+		for i in {5..9}
+		do
+			if [[ ${final[i]} == *"m"* ]]
+			then
+				let counter++
+			fi
+			if [ $counter -eq 5 ]
+			then
+				echo ""
+				echo "WINNER"
+				exit
+			fi
+		done
+
+		counter=0
+		for i in {10..14}
+		do
+			if [[ ${final[i]} == *"m"* ]]
+			then
+				let counter++
+			fi
+			if [ $counter -eq 5 ]
+			then
+				echo ""
+				echo "WINNER"
+				exit
+			fi
+		done
+
+		counter=0
+		for i in {15..19}
+		do
+			if [[ ${final[i]} == *"m"* ]]
+			then
+				let counter++
+			fi
+			if [ $counter -eq 5 ]
+			then
+				echo ""
+				echo "WINNER"
+				exit
+			fi
+		done
+
+		counter=0
+		for i in {20..24}
+		do
+			if [[ ${final[i]} == *"m"* ]]
+			then
+				let counter++
+			fi
+			if [ $counter -eq 5 ]
+			then
+				echo ""
+				echo "WINNER"
+				exit
+			fi
+		done
+
+		counter=0
+		#Identifying Column Bingos!
+		for i in 0 5 10 15 20
+		do
+			if [[ ${final[i]} == *"m"* ]]
+			then
+				let counter++
+			fi
+			if [ $counter -eq 5 ]
+			then
+				echo ""
+				echo "WINNER"
+				exit
+			fi
+		done
+
+		counter=0
+		for i in 1 6 11 16 21
+		do
+			if [[ ${final[i]} == *"m"* ]]
+			then
+				let counter++
+			fi
+			if [ $counter -eq 5 ]
+			then
+				echo ""
+				echo "WINNER"
+				exit
+			fi
+		done 
+
+		counter=0
+		for i in 2 7 12 17 22
+		do
+			if [[ ${final[i]} == *"m"* ]]
+			then
+				let counter++
+			fi
+			if [ $counter -eq 5 ]
+			then
+				echo ""
+				echo "WINNER"
+				exit
+			fi
+		done 
+
+		counter=0
+		for i in 3 8 13 18 23
+		do
+			if [[ ${final[i]} == *"m"* ]]
+			then
+				let counter++
+			fi
+			if [ $counter -eq 5 ]
+			then
+				echo ""
+				echo "WINNER"
+				exit
+			fi
+		done 
+
+		counter=0
+		for i in 4 9 14 19 24
+		do
+			if [[ ${final[i]} == *"m"* ]]
+			then
+				let counter++
+			fi
+			if [ $counter -eq 5 ]
+			then
+				echo ""
+				echo "WINNER"
+				exit
+			fi
+		done
+
+		counter=0
+		#Identifying special 4 bingo
+		for i in 0 4 20 24
+		do
+			if [[ ${final[i]} == *"m"* ]]
+			then
+				let counter++
+			fi
+			if [ $counter -eq 5 ]
+			then
+				echo ""
+				echo "WINNER"
+				exit
+			fi
+		done
+		counter=0
+	}
+
+
+
+#Displays the updated Bingo Card as it is getting marked during every call
+function display_card()
+        {
+                for i in {0..4}
+                do
+                        printf '%-03s %.5s' ${final[i]}
+                done
+                echo " "
+                for i in {5..9}
+                do
+                        printf '%-03s %.5s' ${final[i]}
+                 done
+
+                echo " "
+                for i in {10..14}
+                do
+                         printf '%-03s %.5s' ${final[i]}
+
+                done
+
+                echo " "
+                for i in {15..19}
+                do
+                        printf '%-03s %.5s' ${final[i]}
+                done
+
+                echo " "
+                for i in {20..24}
+                do
+                        printf '%-03s %.5s' ${final[i]}
+                done
+        }
+
+
+
+#Basically clears the screen, then produces an updated list for called out Bingo Values and also does function calls with in a function
+Call()
+    {
+        clear
+	echo "CALL LIST: ""${output[*]}"       
+	echo " L   I   N   U   X" 
+	RandomGen
+	display_card
+	Bingo
+	echo ""
+	echo -n "Enter any key to get a call or Press 'q' to exit: "
+	mark_it 2>/dev/null
+	
+ 
+    }
+
+
+#Basically does the "press any key or q or exit scenario"
+while : ; do
+    Call
+    read -n 1 k <&1
+    if [[ $k = q ]] ; then
+	clear
+	break
+
+fi
+done
